@@ -1,6 +1,6 @@
-# javaScript
+# javaScript練習測試
 
-練習測試
+
 
 01 - drum kit
 https://wu-medoc.github.io/javaScript/01%20-%20JavaScript%20Drum%20Kit/index-ok.html
