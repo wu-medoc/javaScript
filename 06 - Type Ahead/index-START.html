@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Type Ahead 👀</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <form class="search-form">
+    <input type="text" class="search" placeholder="City or State">
+    <ul class="suggestions">
+      <li>Filter for a city</li>
+      <li>or a state</li>
+    </ul>
+  </form>
+<script>
+const endpoint = 'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json';
+const cities = [];
+fetch(endpoint)
+  .then(blob => blob.json())
+  .then(data => cities.push(...data));
+
+function findMatches(wordToMatch, cities) {
+  return cities.filter(place => {
+    // 正則運算式(g全域搜尋,i不分大小寫)，可去MDN web docs查找相關文件說明
+    // here we need to figure out if the city or state matches what was searched
+    const regex = new RegExp(wordToMatch, 'gi');
+    return place.city.match(regex) || place.state.match(regex)
+  });
+}
+
+function numberWithCommas(x) {
+  // 千位元
+  // \b左右沒東西，\B要有東西，?=後面需要跟著，?!後面不能跟
+  // \d是數字，{}要有多少個數，()是群組，+匹配符合
+  // \B前要有東西，\d{3}匹配數字三個，若不匹配則顯示數字
+  // 例如12345678，匹配三個數字且前面有數字(,678)(,345)，剩下12不匹配則直接顯示
+  // 參考 https://regex101.com/ 及 https://regexper.com/
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  // return (x*1).toLocaleString();
+}
+function displayMatches(){
+  // 輸入值，篩選符合的資料
+  const matchArray = findMatches(this.value, cities);
+  const html = matchArray.map(place => {
+    // replace只會取代第一個，用正則RegExp可取代每個
+    // na='Alex Chen' , na.replace('e','E') result is 'AlEx Chen'
+    // let reg = new RegExp('e','gi')
+    // na.replace(reg,'E') result is 'AlEx ChEn'
+    const regex = new RegExp(this.value, 'gi');
+    console.log(regex);
+    console.log(this.value);
+    const cityName = place.city.replace(regex, `<span class="hl">${this.value}</span>`); // 加背景色
+    const stateName = place.state.replace(regex, `<span class="hl">${this.value}</span>`); // 加背景色
+    return `
+      <li>
+        <span class="name">${cityName}, ${stateName}</span>
+        <span class="population">${numberWithCommas(place.population)}</span>
+      </li>
+    `;  // `是ES6的功能，傳統需單引號及雙引號交替使用
+  }).join(''); 
+  // 用join('')組合html的<li>...</li><li>...</li>
+  // a=[1,2,3]
+  // a.toString() or a.join() result is "1,2,3"
+  // a.join('') result is "123"
+  suggestions.innerHTML = html;
+}
+  
+const searchInput = document.querySelector('.search');
+const suggestions = document.querySelector('.suggestions');
+
+searchInput.addEventListener('change', displayMatches);
+searchInput.addEventListener('keyup', displayMatches);
+</script>
+</body>
+</html>
