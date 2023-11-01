@@ -1,0 +1,16 @@
+h1 {
+  background-color: aqua;
+}
+h2 {
+  padding-top: 0.5em;
+}
+p {
+  padding-left: 1em;
+}
+pre {
+  padding: 0.5em;
+  font-size: small;
+  line-height: 1.5em;
+  background-color: lightblue;
+  color: #ffffff;
+}
