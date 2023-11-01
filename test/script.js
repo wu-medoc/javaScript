@@ -1,6 +1,6 @@
-// var name = prompt("your name is ?");
-// h1 = document.querySelector("h1");
-// h1.textContent = name;
+var name = prompt("your name is ?");
+h1 = document.querySelector("h1");
+h1.textContent = name;
 
 var a=0.1;
 var b=0.2;
