@@ -11,6 +11,32 @@
 <h2>float陷阱：javaScript數值是浮點數,用浮點數判斷要特別小心</h2>
 <p>a=0.2, b=0.3, a+b=0.5 a+b===0.5 is true</p>
 <p>a=0.1, b=0.2, a+b=<span class="c"></span> a+b===0.3 is <span class="c1"></span></p>
+<p>解決方法1:將數值比例放大成整數後再除以放大的倍數(0.1*10+0.2*10)/10</p>
+<p>解決方法2:a=0.1, b=0.2, c=a+b, c.toFixed(1) result is 0.3</p>
+<h2>關於undefined,null,NaN,Infinity</h2>
+<pre>
+typeof(null) //Object
+typeof(undefined) //undefined
+null == undefined //true
+null === undefined //false
+null乘以任何數字皆為0
+
+NaN無效的數字
+console.log(0/0) //NaN
+var x='a'; y=Number(x); console.log(y) is NaN
+
+Infinity是數學的無限大
+非0的數字除以0都是Infinity
+1/0 is Infinity
+-2/0 is -Infinity
+
+ES6的Symbol
+var a = Symbol('x');
+var b = Symbol('x');
+a===b is false
+Symbol()每次傳回的符號值都是唯一的，故a,b比較時傳回false
+</pre>
+  
 <h2>函式陳述式expression</h2>
 <pre>
 test(); //變數提升hositing

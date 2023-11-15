@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>indexedDB範例</title>
+	<link rel=stylesheet type="text/css" href="css/style.css">
+	<style>
+		div {
+			border: 2px dotted #ff0000;
+			padding: 5px;
+			margin-top: 5px
+		}
+	</style>
+	<script>
+		window.addEventListener('load', () => {
+
+			window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+			if (!window.indexedDB) {
+				alert("您的瀏覽器不支援indexedDB");
+			}
+
+			/*********
+			openDB() 開啟資料庫	
+			DB_tx() 開啟交易
+			addOrPutData() 新增資料
+			********/
+
+			function openDB() {
+				var req = indexedDB.open(dbName, version);
+				//每個資料庫同一時間只能有一個版本，當資料庫結構有改變時，就須更新版號
+				//當版號變更時會先觸發onupgradeneeded事件，再來會觸發success事件
+
+				req.onsuccess = (e) => {
+					message.innerHTML = "openDB success!";
+					db = e.target.result;
+				};
+
+				req.onerror = (e) => {
+					message.innerHTML = "openDB error" + e.target.error;
+					console.log(e);
+				};
+
+				req.onupgradeneeded = (e) => {
+					var thisDB = e.target.result;
+					if (!thisDB.objectStoreNames.contains(storeName)) {
+						//建立objectStore
+						//keyPath：資料鍵唯一值, autoIncrement：自動編號(無資料時需設true才不會報錯)
+						var objectStore = thisDB.createObjectStore(storeName, { keyPath: "id", autoIncrement: true });
+						//建立索引
+						objectStore.createIndex("uid", "uid", { unique: true });
+						//objectStore.createIndex("name", "name", { unique: false });
+					}
+				};
+			}
+			function DB_tx(storeName, mode) {
+				//mode: readonly唯讀,readwrite讀寫,versionchange版本升級
+				let tx = db.transaction(storeName, mode); //開啟交易來取得objectStore
+				tx.onerror = (e) => {
+					console.error(e);
+				};
+				return tx;
+			}
+
+			function addOrPutData() {
+				let tx = DB_tx(storeName, 'readwrite'); //開啟交易
+				let store = tx.objectStore(storeName); //取得objectStore
+
+				let uid = document.getElementById("uid").value.trim(); //trim() 方法會移除字串起始及結尾處的空白字元
+				let name = document.getElementById("name").value.trim();
+				let city = document.getElementById("city").value.trim();
+
+				value = {
+					uid,
+					name,
+					city
+				};
+				value.timestamp = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+				let r = null;
+				let memo = "";
+
+				const countRequest = store.count();
+				countRequest.onsuccess = () => {
+					console.log(countRequest.result);
+				};
+
+				let addData = () => {
+					r = store.add(value);
+					//add方法只在objectStore裡資料鍵沒有相同資料存在時有用
+
+					r.onsuccess = (e) => {
+						message.innerHTML += "<br>資料新增成功!<br>" + JSON.stringify(value);
+					};
+
+					r.onerror = (e) => {
+						message.innerHTML = "<br>資料新增失敗!<br>" + e.target.error.message;
+					};
+				}
+
+				let putData = (id) => {
+					value["id"] = id;
+					r = store.put(value);
+					//put方法是資料鍵存在時(需帶id才能知道修改哪筆)，會直接更新資料，沒有的話就新增資料
+
+					r.onsuccess = (e) => {
+						message.innerHTML += "<br>資料更新成功!<br>" + JSON.stringify(value);
+					};
+
+					r.onerror = (e) => {
+						message.innerHTML = "<br>資料更新失敗!<br>" + e.target.error.message;
+					};
+				}
+
+				let idx = store.index("uid");
+				let uidRequest = idx.get(uid);
+				uidRequest.onsuccess = (e) => {
+					let res = e.target.result;
+					console.log(e.target);
+					console.log(res);
+					if (res == undefined) {
+						addData();
+					} else {
+						putData(res.id);
+					}
+				};
+				uidRequest.onerror = (e) => {
+					console.log(e.target.error.message);
+				};
+			}
+
+			var db = null;
+			const dbName = "MyDatabase";
+			const storeName = "customer";
+			const version = 1;
+
+			openDB();  //開啟資料庫
+
+			addbtn.onclick = (e) => {
+				addOrPutData('add')  //新增資料
+			}
+
+		})
+	</script>
+</head>
+
+<body>
+	<h2>indexedDB範例</h2>
+	<label for="uid">帳號：</label><input type="text" id='uid'><br>
+	<label for="name">姓名：</label><input type="text" id='name'><br>
+	<label for="city">城巿：</label><input type="text" id='city'><br>
+	<button id="addbtn" class="btn">新增 / 異動</button>
+	<div id="message"></div>
+</body>
+
+</html>
