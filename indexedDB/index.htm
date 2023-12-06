@@ -52,6 +52,7 @@
 						//objectStore.createIndex("name", "name", { unique: false });
 					}
 				};
+				
 			}
 			function DB_tx(storeName, mode) {
 				//mode: readonly唯讀,readwrite讀寫,versionchange版本升級
@@ -127,6 +128,59 @@
 				uidRequest.onerror = (e) => {
 					console.log(e.target.error.message);
 				};
+				
+				let reqAll = store.getAll();
+				reqAll.onsuccess = (e) => {
+					console.log("reqAll", reqAll);
+				};
+
+				let reqCursor = store.openCursor();
+				reqCursor.onsuccess = (e) => {
+					var cursor = e.target.result; //返回的是IDBCursor物件
+					if (cursor) {
+						console.log("reqCursor", cursor.key, cursor.value.name);
+						cursor.continue(); //執行下一筆
+					}
+				};
+
+				//const keyRangeValue = IDBKeyRange.bound(1, 4); //範圍區間
+				const keyRangeValue = IDBKeyRange.bound(1, 4, true, true); //範圍區間（true不包含參數值）
+				//const keyRangeValue = IDBKeyRange.lowerBound(2, true); //設下限：大於等於2（true不包含2）
+				//const keyRangeValue = IDBKeyRange.upperBound(3, true); //設上限：小於等於3（true不包含3）
+				//const keyRangeValue = IDBKeyRange.only(1); //以key值搜尋
+				const tx1 = DB_tx(storeName, 'readonly'); //開啟交易
+				const store1 = tx.objectStore(storeName); //取得objectStore
+				store1.openCursor(keyRangeValue).onsuccess = (event) => {
+					const cursor = event.target.result;
+					console.log("rangeData", cursor);
+					if (cursor) {
+						let list = document.getElementById("list");
+						let listItem = document.createElement("li");
+						listItem.textContent = `${cursor.value.uid}, ${cursor.value.name}`;
+						list.appendChild(listItem);
+						cursor.continue();
+					} else {
+						console.log("Entries all displayed.");
+					}
+				};
+			}
+
+			function delData() {
+				let tx2 = DB_tx(storeName, 'readwrite'); //開啟交易
+				let store2 = tx2.objectStore(storeName); //取得objectStore
+				let delid = document.getElementById("delid").value.trim() * 1; //*1轉換成數值
+				let req = store2.delete(delid);
+				
+				let list = document.getElementById("list");
+				let listItem = document.createElement("li");
+				req.onerror = (e) => {
+					listItem.textContent =  `刪除資料失敗, ${e.target.error}`;
+					list.appendChild(listItem);
+				}
+				req.onsuccess = (e) => {
+					listItem.textContent =  `刪除第 ${delid} 筆資料成功`;
+					list.appendChild(listItem);
+				}
 			}
 
 			var db = null;
@@ -137,9 +191,23 @@
 			openDB();  //開啟資料庫
 
 			addbtn.onclick = (e) => {
-				addOrPutData('add')  //新增資料
+				addOrPutData('add');  //新增資料
 			}
 
+			delbtn.onclick = (e) => {
+				delData();  //刪除資料
+			}
+
+			clearbtn.onclick = (e) => {
+				let tx3 = DB_tx(storeName, 'readwrite'); //開啟交易
+				let store3 = tx3.objectStore(storeName); //取得objectStore
+				store3.clear();
+				
+				let list = document.getElementById("list");
+				let listItem = document.createElement("li");
+				listItem.textContent =  `清除資料成功`;
+				list.appendChild(listItem);
+			}
 		})
 	</script>
 </head>
@@ -149,8 +217,12 @@
 	<label for="uid">帳號：</label><input type="text" id='uid'><br>
 	<label for="name">姓名：</label><input type="text" id='name'><br>
 	<label for="city">城巿：</label><input type="text" id='city'><br>
-	<button id="addbtn" class="btn">新增 / 異動</button>
+	<button id="addbtn" class="btn">新增 / 異動</button><br><hr>
+	<label for="delid">刪除：</label><input type="text" id='delid'><br>
+	<button id="delbtn" class="btn">刪除</button><br><hr>
+	<button id="clearbtn" class="btn">清除資料</button><br><hr>
 	<div id="message"></div>
+	<ul id="list"></ul>
 </body>
 
 </html>
