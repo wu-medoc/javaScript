@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>通訊錄管理</title>
+	<link rel=stylesheet type="text/css" href="css/style.css?v12">
+	<link rel=stylesheet type="text/css" href="css/sprite.css">
+
+	<style>
+		input {
+			width: 100%;
+		}
+		
+		input.w50 {
+			width:inherit;
+		}
+
+		table {
+			margin: 1em;
+			width: 100%;
+			white-space: nowrap;
+		}
+
+		tr,
+		th,
+		td {
+			border-bottom: 1px solid #000000;
+		}
+
+		th,
+		td {
+			text-align: center;
+			padding: 5px;
+		}
+
+		h3,
+		p {
+			display: inline-block;
+		}
+
+		hr {
+			margin-top: 1.5em;
+		}
+	</style>
+	<script>
+		window.addEventListener('load', () => {
+
+			window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+			if (!window.indexedDB) {
+				showMessage("您的瀏覽器不支援indexedDB");
+			}
+
+			var db = null;
+			const dbName = "address_book";  //indexedDB
+			const storeName = "contacts";   //建立儲存物作objectStore
+			const version = 3;
+
+			//開啟資料庫	
+			(function init() {
+				var req = indexedDB.open(dbName, version);  //開啟交易
+
+				req.onsuccess = (e) => {
+					db = e.target.result;
+					contactsList('', '');
+				};
+
+				req.onerror = (e) => {
+					showMessage("openDB error");
+				};
+
+				req.onupgradeneeded = (e) => {
+					var thisDB = e.target.result;
+					if (!thisDB.objectStoreNames.contains(storeName)) {
+						//定義id為keypath key
+						//建立（name, tel, timestamp）三個index以提高查詢速度
+						var objectStore = thisDB.createObjectStore(storeName, { keyPath: "id", autoIncrement: true });
+						objectStore.createIndex("name", "name", { unique: false });
+						objectStore.createIndex("tel", "tel", { unique: true }); //tel唯一值，不能重覆
+						objectStore.createIndex("timestamp", "timestamp", { unique: false });
+
+						//要新增的資料array
+						const contactsData = [
+							{ name: "小妹", tel: "0909123123", address: "新北市", email: "may@gmail.com", memo: "好友", timestamp: new Date() },
+							{ name: "小陳", tel: "0908456456", address: "台北市", email: "chan@gmail.com", memo: "同事", timestamp: new Date() },
+							{ name: "小華", tel: "0908567567", address: "台中市", email: "tony@gmail.com", memo: "親戚", timestamp: new Date() }
+						];
+
+						//新增資料到objectStore
+						contactsData.forEach(function (user) {
+							objectStore.add(user);
+						})
+
+					}
+				};
+
+				putbtn.style.display = 'none';   //hidden putbtn button
+				findbtn.style.display = 'none';  //hidden findbtn button
+				findDate.style.display = 'none'; //hidden findDate block
+
+			})();
+
+			//開啟交易（indexedDB中，所有讀寫操作，都要透過交易）
+			//toreName是存儲表名，mode是操作權限
+			function DB_tx(storeName, mode) {
+				let tx = db.transaction(storeName, mode);
+				tx.onerror = (e) => {
+					console.error("tx", e);
+				};
+				return tx;
+			}
+
+			//新增資料（右上角新增ICON）
+			document.getElementById('newbtn').addEventListener('click', newData);
+			function newData(e) {
+				e.preventDefault(); //阻止元素預設的動作
+				putbtn.style.display = 'none';      //「修改OK」按鈕設為隱藏
+				addbtn.style.display = 'inline';	 //「新增OK」按鈕設為顯示
+				findbtn.style.display = 'none';	 //「送出搜尋」按鈕設為隱藏
+				findDate.style.display = 'none';	 //「建立日期」區塊設為隱藏
+				document.getElementById('showJob').innerHTML = "新增資料"; //更改h3標記的內文
+
+				//清空form所有欄位的資料
+				document.getElementById('contactsform').reset();
+			}
+
+			//開啟搜尋模式（右上角搜尋ICON）
+			document.getElementById('searchDatabtn').addEventListener('click', searchDataStart);
+			function searchDataStart(e) {
+				e.preventDefault();
+				//新增OK按鈕設為顯示，修改OK按鈕設為隱藏
+				putbtn.style.display = 'none';
+				addbtn.style.display = 'none';
+				findbtn.style.display = 'inline';
+				findDate.style.display = 'block';
+				document.getElementById('showJob').innerHTML = "搜尋資料";
+
+				//清空所有文字欄位的資料
+				document.getElementById('contactsform').reset();
+			}
+
+			//新增完成 或 修改完成（keydown也會被觸發）
+			document.getElementById('addbtn').addEventListener('click', createAndUpdate);
+			document.getElementById('putbtn').addEventListener('click', createAndUpdate);
+			function createAndUpdate(e) {
+				//alert(e.cancelable);
+				//js有三種彈出視窗：alert, confirm, prompt
+				//alert：跳出警示視窗
+				//confirm：跳出確認對話視窗
+				//prompt：跳出讓使用者輸入文字的對話視窗
+
+				console.log(e.type, e);
+
+				//阻止元件的預設行為，並不會阻止事件的傳遞
+				//from表單沒有指定的action，因此會提交同一頁面，為防止此現象
+				e.preventDefault(); 
+
+				//取得文字方塊輸入內容
+				let name = document.getElementById("name").value.trim();
+				let tel = document.getElementById("tel").value.trim();
+				let address = document.getElementById("address").value.trim();
+				let email = document.getElementById("email").value.trim();
+				let memo = document.getElementById("memo").value.trim();
+
+				if (name == "" && tel == "" && address == "" && memo == "") {
+					showMessage("請輸入資料!");
+					console.log("1");
+				} else {
+					console.log("2");
+
+					let tx = DB_tx(storeName, 'readwrite');   //交易權限是可讀寫
+					tx.oncomplete = (e) => {     //交易完成時觸發
+						contactsList('', '');   //重整列表資料
+					};
+					let store = tx.objectStore(storeName);
+					let r = null;
+
+					value = {
+						name,
+						tel,
+						address,
+						email,
+						memo,
+						timestamp: new Date()    //加上時間戳記
+					};
+
+					//藉由IDkey的值，判斷是新增或修改
+					let IDkey = document.getElementById("IDkey").value.trim();
+					console.log("IDkey: ", IDkey);
+
+
+					if (IDkey === "")   //IDkey一般為空，表示新增，修改時才會將id帶入
+					{
+						r = store.add(value);	     //新增資料  
+						r.onsuccess = (e) => {
+							showMessage("資料新增成功!");   //顯示成功訊息
+						};
+						r.onerror = (e) => {
+							showMessage("資料新增失敗!<br>" + e.target.error.message);   //顯示失敗訊息
+						};
+					} else {
+						//修改資料
+						value.id = Number(IDkey);      //更新此id的資料
+						r = store.put(value);	     //更新資料 
+						r.onsuccess = (e) => {
+							showMessage("資料修改成功!");
+						};
+						r.onerror = (e) => {
+							showMessage("資料修改失敗!<br>" + e.target.error.message);
+						};
+					}
+				}
+
+			}
+
+			//搜尋資料
+			document.getElementById('findbtn').addEventListener('click', readData);
+			function readData(e) {
+				e.preventDefault();
+				let name = document.getElementById("name").value.trim();
+				let tel = document.getElementById("tel").value.trim();
+				let address = document.getElementById("address").value.trim();
+				let email = document.getElementById("email").value.trim();
+				let memo = document.getElementById("memo").value.trim();
+				let startDate = document.getElementById("startDate").value.trim();
+				let endDate = document.getElementById("endDate").value.trim();
+
+				if (name == "" && tel == "" && address == "" && memo == "" && startDate == "" && endDate == "") contactsList("", "");
+
+				if (name) contactsList("name", name);
+				if (tel) contactsList("tel", tel);
+				if (address) contactsList("address", address);
+				if (email) contactsList("email", email);
+				if (startDate != "" && endDate != "") contactsList("timestamp", startDate + "|" + endDate);
+			}
+
+			//清空所有資料
+			document.getElementById('clearDatabtn').addEventListener('click', (e) => {
+				e.preventDefault();
+				if (confirm("確定要清空全部資料?")) {
+					clearData();
+				}
+			})
+
+			function clearData() {
+				let tx = DB_tx(storeName, 'readwrite');   //呼叫DB_tx函式開啟交易
+				let store = tx.objectStore(storeName);   //指定存儲物件
+				store.clear();    //清空資料
+				contactsList('', '');   //呼叫contactsList函式顯示列表資料
+				showMessage("資料已清空!");    //呼叫showMessage函式顯示執行結果
+			}
+
+
+			//刪除資料庫
+			document.getElementById('dropDBbtn').addEventListener('click', (e) => {
+				e.preventDefault();
+				if (confirm("確定要刪除資料庫?\n(刪除之後將重新載入頁面)")) {
+					dropDB();
+					location.reload();
+				}
+			})
+
+			function dropDB() {
+				let req = indexedDB.deleteDatabase(dbName);
+				req.onsuccess = (e) => {
+					showMessage("資料庫已刪除!");
+				};
+				req.onerror = (e) => {
+					showMessage("資料庫刪除失敗!<br>" + e.target.error.message);
+				}
+			}
+
+
+			/*listTb表格加入click事件，當按下的是按鈕就依照[data-key]屬性值找出資料*/
+			//listTb表格為父元素，點擊的目標物件為子元素
+			//子元素被點選時會往上傳遞，觸發父元素的click事件，這樣的事件傳遞機制稱為事件冒泡
+			document.getElementById('listTb').addEventListener('click', (e) => {
+				e.preventDefault();
+				let target = e.target;	//點擊的目標物件
+
+				//當目標物件是按鈕時才做處理
+				if (target.tagName.toLowerCase() === 'button') {
+
+					let tr = target.closest('tr');       //找出最近的tr元素  
+					let keyNo = parseInt(tr.dataset.key);	  //找出tr的data-key屬性值
+					//屬性名稱必須以「data-」開頭，後面的屬性名稱可自行定義
+					//tr.dataset.key或tr.dataset[key]二種寫法都可以
+
+					//舉例<div id="dog" data-animal="puppy">my dog</div>
+					//let dog = document.getElementById("dog");
+					//console.log(dog.dataset.animal, dog.dataset[animal]);
+					//dog.getAttribute("data-animal"); //getAttribute方法直接用屬性名稱來讀取
+					//#dog[data-animal="puppy"] {color:red} //css也可使用自定義的屬性
+
+					//開啟修改模式 
+					//classList取得目標class屬性清單，contains方法檢查元素的class屬性是否存在
+					if (target.classList.contains('mdybtn')) {
+						let tx = DB_tx(storeName, 'readonly');
+						let store = tx.objectStore(storeName);
+						let oneRecords = store.get(keyNo);
+						oneRecords.onsuccess = (e) => {
+							let request = e.target;
+							let obj = request.result;
+
+							document.getElementById('name').value = obj.name;
+							document.getElementById('tel').value = obj.tel;
+							document.getElementById('address').value = obj.address;
+							document.getElementById('email').value = obj.email;
+							document.getElementById('memo').value = obj.memo;
+							document.getElementById('IDkey').value = obj.id;
+
+							//新增OK按鈕設為隱藏，修改OK按鈕設為顯示
+							putbtn.style.display = 'inline';
+							addbtn.style.display = 'none';
+							document.getElementById('showJob').innerHTML = "修改資料";
+						}
+					}
+					//刪除資料
+					if (target.classList.contains('delbtn')) {
+						if (confirm("確定要執行刪除?")) {
+							let tx = DB_tx(storeName, 'readwrite');
+							let store = tx.objectStore(storeName);
+							let oneRecords = store.delete(keyNo);
+							oneRecords.onsuccess = (e) => {
+								contactsList('', '');
+							}
+							oneRecords.onerror = (e) => {
+								showMessage("刪除失敗!<br>" + e.target.error.message);
+							}
+						}
+					}
+				}
+			})
+
+			//取得資料並列表
+			//find判斷要執行的是全部列表或是搜尋列表，findvalue指搜尋條件
+			//當二個參數都帶入空值表示顯示全部資料
+			function contactsList(find, findvalue) {
+				console.log(find, findvalue);
+				let ulist = document.getElementById("listTb");
+				ulist.innerHTML = "載入中...";
+				let tx = DB_tx(storeName, 'readonly');
+				let store = tx.objectStore(storeName);
+				let allRecords = null;
+
+				//判斷是搜尋或是完整資料列表
+				if (find != "") {
+					if (find == "timestamp") {   //當使用建立時間搜尋時
+						let d = findvalue.split('|');
+						let endtime = d[1] + 'T23:59:59';
+						findvalue = IDBKeyRange.bound(new Date(d[0]), new Date(endtime));
+					}
+					let index = store.index(find);    //依索引欄位搜尋
+					allRecords = index.getAll(findvalue);   //取出搜尋到的全部資料
+				} else {
+					allRecords = store.getAll();    //取出全部資料
+				}
+
+				allRecords.onsuccess = (e) => {
+					let request = e.target;
+
+					//使用map和join方法合併字串
+					//map方法會將所有陣列或物件元素依序傳入callback函式，產生一個新陣列
+					//join方法會將陣列中所有的元素連接，合併成一個字串，並回傳此字串
+					let contents = request.result.map((obj) => {
+						return "<tr data-key=" + obj.id + "><td><button class='mdybtn smallBtn sprite sprite-edit'></button><button class='delbtn smallBtn sprite sprite-del'></button></td><td>" + obj.name + "</td><td>" + obj.tel + "</td><td>" + obj.address + "</td><td>" + obj.email + "</td><td>" + obj.memo + "</td><td>"
+							+ obj.timestamp.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+							+ "</td></tr>";
+					}).join('');
+					if (contents == "") {
+						ulist.innerHTML = "查無資料!"
+					} else {
+						ulist.innerHTML = "<thead><tr><th>&nbsp;</th><th>姓名</th><th>電話</th><th>地址</th><th>E-Mail</th><th>備註</th><th>建立日期</th></tr></thead><tbody>" + contents + "</tbody>";
+					}
+				};
+				allRecords.onerror = (e) => {
+					console.error("allRecords", e);
+				};
+			}
+
+			//顯示訊息
+			function showMessage(m) {
+				document.getElementById('msg').innerHTML = m;
+				setTimeout(() => {
+					document.getElementById('msg').innerHTML = "";
+				}, 8000);
+			}
+
+		})
+	</script>
+</head>
+
+<body>
+	<fieldset>
+		<legend>個人通訊錄</legend>
+		<button id="clearDatabtn" class="orangeBtn">清空資料</button><button id="dropDBbtn" class="orangeBtn">刪除資料庫</button>
+		<div style="float:right;">
+			<button id="newbtn" class="smallBtn sprite sprite-add"></button><button id="searchDatabtn"
+				class="smallBtn sprite sprite-search"></button>
+		</div>
+		<div>
+			<h3 id="showJob">新增資料</h3>&nbsp;<p id="msg" style="color:red;"></p>
+		</div>
+		<form id="contactsform">
+			<label for="name">姓名：</label><input type="text" title="姓名" id='name' class="userItem">　　
+			<label for="tel">電話：</label><input type="text" id='tel' class="userItem"><br>
+			<label for="address">地址：</label><input type="text" id='address' class="userItem"><br>
+			<label for="email">Mail：</label><input type="text" id='email' class="userItem"><br>
+			<label for="memo">備註：</label><input type="text" id='memo' class="userItem"><br>
+			<input type="hidden" id='IDkey' class="userItem">
+			<div id="findDate" style="margin:5px 0px">
+				<label for="timestamp">建立日期：<br>
+					<input type="date" id='startDate' value="" class="w50"> ~ 
+					<input type="date" id='endDate' value="" class="w50">
+			</div>
+			<button id="addbtn" class="btn">新增OK</button>
+			<button id="putbtn" class="btn">修改OK</button>
+			<button id="findbtn" class="btn">送出搜尋</button>
+		</form>
+	</fieldset>
+	<section>
+		<div class="rwd">
+			<table id='listTb'></table>
+		</div>
+	</section>
+	<hr>
+	<h2>使用的元件與處理函式如下表</h2>
+	<div class="rwd">
+		<table>
+			<tr>
+				<th>編號</th>
+				<th>功能</th>
+				<th>HTML元件</th>
+				<th>ID</th>
+				<th>事件</th>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>新增會員</td>
+				<td>button</td>
+				<td>newbtn</td>
+				<td>newData()</td>
+			</tr>
+			<tr>
+				<td>2</td>
+				<td>新增OK</td>
+				<td>button</td>
+				<td>addbtn</td>
+				<td>createAndUpdate()</td>
+			</tr>
+			<tr>
+				<td>3</td>
+				<td>單筆修改/刪除</td>
+				<td>table</td>
+				<td>listtb</td>
+				<td>匿名函式內處理</td>
+			</tr>
+			<tr>
+				<td>4</td>
+				<td>修改OK</td>
+				<td>button</td>
+				<td>putbtn</td>
+				<td>createAndUpdate()</td>
+			</tr>
+			<tr>
+				<td>5</td>
+				<td>搜尋</td>
+				<td>button</td>
+				<td>searchDatabtn</td>
+				<td>searchDataStart()</td>
+			</tr>
+			<tr>
+				<td>6</td>
+				<td>送出搜尋</td>
+				<td>button</td>
+				<td>findbtn</td>
+				<td>readDate()</td>
+			</tr>
+			<tr>
+				<td>7</td>
+				<td>清空資料</td>
+				<td>button</td>
+				<td>clearDatabtn</td>
+				<td>clearData()</td>
+			</tr>
+			<tr>
+				<td>8</td>
+				<td>刪除資料庫</td>
+				<td>button</td>
+				<td>dropDBbtn</td>
+				<td>dropDB()</td>
+			</tr>
+		</table>
+	</div>
+</body>
+
+</html>

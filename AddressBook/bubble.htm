@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>事件冒泡</title> 
+<style>
+#outer{width:100px;height:50px;background-color:#C7DFC5;text-align:center}
+</style>
+</head>
+<body>
+<h3>事件冒泡：由內而外傳遞</h3>
+<p>a⟶div⟶body⟶html⟶document</p>
+<div id="outer">
+	<a href="javascript:void(0);" id="link">超連結</a>
+</div>
+<div id="showMsg">
+	
+</div>
+<script>
+document.getElementById("outer").addEventListener("click", (e) => {	
+	//e.stopPropagation(); bubble是由內而外，所以下在此無用，需由內控制
+	document.getElementById("showMsg").innerHTML += "DIV物件被點擊了!<br>";	
+});
+
+document.getElementById("link").addEventListener("click", (e) => {	
+	e.stopPropagation();
+	document.getElementById("showMsg").innerHTML += "超連結被點擊了!<br>";
+});
+</script>
+</body>
+</html>

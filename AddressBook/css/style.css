@@ -1,0 +1,92 @@
+fieldset{
+  background-color: #f6f6f6; 
+  border-radius: 15px;  /*導圓角*/
+  margin: 10px;
+  border: 5px solid rgb(128, 177, 250);    /*設定為無邊線*/
+}
+legend{
+  background-color: rgb(128, 177, 250);  
+  color:#ffffff;
+  padding: 10px;		/*填充距離*/
+  margin-left: 10px;	/*左外邊距*/
+  width: auto;
+  border-radius: 5px;
+}
+#show_LocalStorage{
+	width:auto;
+	height:50px;
+	background-color:#ffccff;
+	border-radius: 5px;
+	margin-top: 10px;
+}
+
+.btn {
+	box-shadow: 0px 1px 0px 0px #f0f7fa;
+	background:linear-gradient(to bottom, #4464f3 5%, rgb(128, 177, 250) 100%);
+	background-color:#4464f3;
+	border-radius:6px;
+	border:1px solid rgb(128, 177, 250);
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	font-family:Arial;
+	font-size:15px;
+	font-weight:bold;
+	padding:6px 24px;
+	text-decoration:none;
+	text-shadow:0px -1px 0px #4464f3;
+	margin:10px 0px ;
+}
+.btn:hover {
+	background:linear-gradient(to bottom, rgb(128, 177, 250) 5%, #4464f3 100%);
+	background-color:rgb(128, 177, 250);
+}
+.btn:active {
+	position:relative;
+	top:1px;
+}
+.smallBtn {
+	border:0;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	margin:0px 3px;
+}
+.smallBtn:hover {
+	opacity:0.3;
+}
+.smallBtn:active {
+	position:relative;
+	top:1px;
+}
+
+.orangeBtn {
+	box-shadow: 0px 1px 0px 0px #fff6af;
+	background:linear-gradient(to bottom, #ffec64 5%, #ffab23 100%);
+	background-color:#ffec64;
+	border-radius:6px;
+	border:1px solid #ffaa22;
+	display:inline-block;
+	cursor:pointer;
+	color:#333333;
+	font-family:Arial;
+	font-size:15px;
+	font-weight:bold;
+	padding:6px 24px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #ffee66;
+	margin:0px 5px;
+}
+.orangeBtn:hover {
+	background:linear-gradient(to bottom, #ffab23 5%, #ffec64 100%);
+	background-color:#ffab23;
+	
+}
+.orangeBtn:active {
+	position:relative;
+}
+.rwd {
+	display: inline-block;
+	width: calc(100% - 20px);
+	overflow-x: auto;
+}
