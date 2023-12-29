@@ -1,13 +1,13 @@
-// ºÊÅ¥install¨Æ¥ó
+// ç›£è½installäº‹ä»¶
 self.addEventListener("install", (e) => {
     console.log("install.");
 	self.skipWaiting();
 });
-// ºÊÅ¥activate¨Æ¥ó
+// ç›£è½activateäº‹ä»¶
 self.addEventListener("activate", (e) => {
     console.log("activate.");
 });
-// ºÊÅ¥fetch¨Æ¥ó
+// ç›£è½fetchäº‹ä»¶
 self.addEventListener('fetch', (e) => {
 	console.log("fetch");
 });
