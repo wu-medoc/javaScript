@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>web components</title>
+</head>
+
+<body>
+  <!-- <nav>
+    <div class="nav-style">title</div>
+    <div class="nav-style">menu</div>
+  </nav>
+  <main>welcome</main> -->
+  <my-app id="myApp" text="welcome"></my-app>
+  <script type="module">
+    import MyNav from './MyNav.mjs';
+    import MyMain from './MyMain.mjs';
+    class MyApp extends HTMLElement {
+      static style = ``;
+      //建構式：畫面初始
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.styling();
+        this.render();
+      }
+      styling() {
+        this.stylesheet = document.createElement('style');
+        this.stylesheet.textContent = this.constructor.style;
+        this.shadowRoot.appendChild(this.stylesheet);
+      }
+      render() {
+        const navDom = document.createElement('my-nav');
+        const mainDom = document.createElement('my-main');
+        this.shadowRoot.appendChild(navDom);
+        this.shadowRoot.appendChild(mainDom);
+      }
+    }
+
+    //註冊組件
+    window.customElements.define('my-nav', MyNav);
+    window.customElements.define('my-main', MyMain);
+    window.customElements.define('my-app', MyApp);
+  </script>
+</body>
+
+</html>
